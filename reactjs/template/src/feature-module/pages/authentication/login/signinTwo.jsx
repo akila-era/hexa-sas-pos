@@ -106,6 +106,13 @@ const SigninTwo = () => {
                           Create an account
                         </Link>
                       </h4>
+                      <h4 className="mt-2">
+                        Super Admin?
+                        <Link to={route.superAdminLogin} className="hover-a">
+                          {" "}
+                          Sign In Here
+                        </Link>
+                      </h4>
                     </div>
                     <div className="form-setlogin or-text">
                       <h4>OR</h4>

@@ -1,0 +1,345 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id            String         @id @default(uuid())
+  name          String
+  plan          String         @default("FREE")
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  email         String?
+  phone         String?
+  website       String?
+  address       String?
+  accountUrl    String?        @unique
+  currency      String         @default("USD")
+  language      String         @default("English")
+  logo          String?
+  branches      Branch[]
+  categories    Category[]
+  customers     Customer[]
+  domains       Domain[]
+  posOrders     POSOrder[]
+  products      Product[]
+  sales         Sale[]
+  settings      Setting[]
+  subscriptions Subscription[]
+  users         User[]
+  warehouses    Warehouse[]
+
+
+}
+
+model Branch {
+  id         String      @id @default(uuid())
+  tenantId   String
+  name       String
+  city       String?
+  isActive   Boolean     @default(true)
+  createdAt  DateTime    @default(now())
+  tenant     Tenant      @relation(fields: [tenantId], references: [id])
+  posOrders  POSOrder[]
+  sales      Sale[]
+  users      User[]
+  warehouses Warehouse[]
+
+  @@index([tenantId])
+
+}
+
+model User {
+  id           String     @id @default(uuid())
+  tenantId     String
+  branchId     String
+  roleId       String
+  email        String     @unique
+  password     String
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  posOrders    POSOrder[]
+  createdSales Sale[]     @relation("UserSales")
+  branch       Branch     @relation(fields: [branchId], references: [id])
+  role         Role       @relation(fields: [roleId], references: [id])
+  tenant       Tenant     @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@index([branchId])
+
+}
+
+model Role {
+  id          String           @id @default(uuid())
+  tenantId    String
+  name        String
+  createdAt   DateTime         @default(now())
+  permissions RolePermission[]
+  users       User[]
+
+  @@index([tenantId])
+
+}
+
+model Permission {
+  id              String           @id @default(uuid())
+  key             String           @unique
+  rolePermissions RolePermission[]
+
+
+}
+
+model RolePermission {
+  id           String     @id @default(uuid())
+  roleId       String
+  permissionId String
+  permission   Permission @relation(fields: [permissionId], references: [id])
+  role         Role       @relation(fields: [roleId], references: [id])
+
+  @@unique([roleId, permissionId])
+
+}
+
+model Category {
+  id        String    @id @default(uuid())
+  tenantId  String
+  name      String
+  createdAt DateTime  @default(now())
+  tenant    Tenant    @relation(fields: [tenantId], references: [id])
+  products  Product[]
+
+  @@index([tenantId])
+
+}
+
+model Product {
+  id         String          @id @default(uuid())
+  tenantId   String
+  categoryId String
+  name       String
+  sku        String
+  price      Decimal
+  cost       Decimal?
+  isActive   Boolean         @default(true)
+  createdAt  DateTime        @default(now())
+  posItems   POSOrderItem[]
+  category   Category        @relation(fields: [categoryId], references: [id])
+  tenant     Tenant          @relation(fields: [tenantId], references: [id])
+  saleItems  SaleItem[]
+  stocks     Stock[]
+  stockMoves StockMovement[]
+
+  @@unique([tenantId, sku])
+  @@index([tenantId])
+
+}
+
+model Warehouse {
+  id        String          @id @default(uuid())
+  tenantId  String
+  branchId  String
+  name      String
+  stocks    Stock[]
+  movements StockMovement[]
+  branch    Branch          @relation(fields: [branchId], references: [id])
+  tenant    Tenant          @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@index([branchId])
+
+}
+
+model Stock {
+  id          String    @id @default(uuid())
+  productId   String
+  warehouseId String
+  quantity    Int       @default(0)
+  product     Product   @relation(fields: [productId], references: [id])
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+
+  @@unique([productId, warehouseId])
+
+}
+
+model StockMovement {
+  id          String    @id @default(uuid())
+  productId   String
+  warehouseId String
+  type        String
+  quantity    Int
+  refType     String?
+  refId       String?
+  createdAt   DateTime  @default(now())
+  product     Product   @relation(fields: [productId], references: [id])
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+
+  @@index([productId])
+  @@index([warehouseId])
+
+}
+
+model POSOrder {
+  id        String         @id @default(uuid())
+  tenantId  String
+  branchId  String
+  cashierId String
+  total     Decimal
+  payment   String
+  createdAt DateTime       @default(now())
+  branch    Branch         @relation(fields: [branchId], references: [id])
+  cashier   User           @relation(fields: [cashierId], references: [id])
+  tenant    Tenant         @relation(fields: [tenantId], references: [id])
+  items     POSOrderItem[]
+  sale      Sale?
+
+  @@index([tenantId])
+  @@index([branchId])
+
+}
+
+model POSOrderItem {
+  id         String   @id @default(uuid())
+  posOrderId String
+  productId  String
+  qty        Int
+  price      Decimal
+  posOrder   POSOrder @relation(fields: [posOrderId], references: [id])
+  product    Product  @relation(fields: [productId], references: [id])
+
+
+}
+
+model Sale {
+  id         String     @id @default(uuid())
+  tenantId   String
+  branchId   String
+  posOrderId String     @unique
+  customerId String?
+  creatorId  String?
+  total      Decimal
+  status     String     @default("PAID")
+  createdAt  DateTime   @default(now())
+  branch     Branch     @relation(fields: [branchId], references: [id])
+  creator    User?      @relation("UserSales", fields: [creatorId], references: [id])
+  customer   Customer?  @relation(fields: [customerId], references: [id])
+  pos        POSOrder   @relation(fields: [posOrderId], references: [id])
+  tenant     Tenant     @relation(fields: [tenantId], references: [id])
+  items      SaleItem[]
+
+
+}
+
+model SaleItem {
+  id        String  @id @default(uuid())
+  saleId    String
+  productId String
+  qty       Int
+  price     Decimal
+  product   Product @relation(fields: [productId], references: [id])
+  sale      Sale    @relation(fields: [saleId], references: [id])
+
+
+}
+
+model Customer {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  phone     String?
+  createdAt DateTime @default(now())
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  sales     Sale[]
+
+  @@index([tenantId])
+
+}
+
+model Setting {
+  id        String   @id @default(uuid())
+  tenantId  String
+  key       String
+  value     String
+  updatedAt DateTime @updatedAt
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, key])
+
+}
+
+model Package {
+  id            String         @id @default(uuid())
+  name          String
+  type          String
+  price         Decimal
+  discount      Decimal        @default(0)
+  discountType  String?
+  maxCustomers  Int?
+  maxProducts   Int?
+  maxInvoices   Int?
+  maxSuppliers  Int?
+  modules       String[]
+  isRecommended Boolean        @default(false)
+  trialDays     Int            @default(0)
+  position      Int            @default(0)
+  status        String         @default("ACTIVE")
+  description   String?
+  image         String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  subscriptions Subscription[]
+
+
+}
+
+model Subscription {
+  id            String        @id @default(uuid())
+  companyId     String
+  packageId     String
+  billingCycle  Int
+  amount        Decimal
+  paymentMethod String
+  status        String        @default("PAID")
+  startDate     DateTime      @default(now())
+  expiryDate    DateTime
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  company       Tenant        @relation(fields: [companyId], references: [id])
+  package       Package       @relation(fields: [packageId], references: [id])
+  transactions  Transaction[]
+
+  @@index([companyId])
+  @@index([packageId])
+
+}
+
+model Domain {
+  id        String   @id @default(uuid())
+  companyId String
+  domainUrl String   @unique
+  status    String   @default("PENDING")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  company   Tenant   @relation(fields: [companyId], references: [id])
+
+  @@index([companyId])
+
+}
+
+model Transaction {
+  id             String       @id @default(uuid())
+  subscriptionId String
+  invoiceId      String       @unique
+  amount         Decimal
+  paymentMethod  String
+  status         String       @default("PAID")
+  createdAt      DateTime     @default(now())
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id])
+
+  @@index([subscriptionId])
+
+}

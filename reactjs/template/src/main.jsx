@@ -12,13 +12,13 @@ import "primeicons/primeicons.css";
 import "./assets/icons/feather/css/iconfont.css";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
-import "../src/assets/css/feather.css";
+import "./assets/css/feather.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./customStyle.scss";
 import { LazyWrapper } from "./components/lazy-loading";
-import "../src/assets/icons/boxicons/css/boxicons.min.css";
-import "../node_modules/@fortawesome/fontawesome-free/css/fontawesome.min.css";
-import "../node_modules/@fortawesome/fontawesome-free/css/all.min.css";
+import "./assets/icons/boxicons/css/boxicons.min.css";
+import "@fortawesome/fontawesome-free/css/fontawesome.min.css";
+import "@fortawesome/fontawesome-free/css/all.min.css";
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

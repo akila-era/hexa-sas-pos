@@ -412,18 +412,6 @@ const Checkout = lazy(() => import("../feature-module/ecommerce/checkout"));
 const Wishlist = lazy(() => import("../feature-module/ecommerce/wishlist"));
 const Reviews = lazy(() => import("../feature-module/ecommerce/reviews"));
 const Calendars = lazy(() => import("../feature-module/application/calendar"));
-const SuperAdminDashboard = lazy(
-  () => import("../feature-module/super-admin/dashboard")
-);
-const Companies = lazy(() => import("../feature-module/super-admin/companies"));
-const Subscription = lazy(() => import("../feature-module/super-admin/subscription"));
-const Packages = lazy(
-  () => import("../feature-module/super-admin/packages/packagelist")
-);
-const Domain = lazy(() => import("../feature-module/super-admin/domin"));
-const PurchaseTransaction = lazy(
-  () => import("../feature-module/super-admin/purchase-transaction")
-);
 const EmailReply = lazy(
   () => import("../feature-module/application/emailReply")
 );
@@ -1491,48 +1479,6 @@ export const authRoutes = [
   route: Route
 },
 {
-  id: 143,
-  path: routes.superadmindashboard,
-  name: "super-admin-dashboard",
-  element: <SuperAdminDashboard />,
-  route: Route
-},
-{
-  id: 144,
-  path: routes.companies,
-  name: "companies",
-  element: <Companies />,
-  route: Route
-},
-{
-  id: 145,
-  path: routes.subscription,
-  name: "subscription",
-  element: <Subscription />,
-  route: Route
-},
-{
-  id: 146,
-  path: routes.packagelist,
-  name: "packages",
-  element: <Packages />,
-  route: Route
-},
-{
-  id: 147,
-  path: routes.domain,
-  name: "domain",
-  element: <Domain />,
-  route: Route
-},
-{
-  id: 148,
-  path: routes.purchasetransaction,
-  name: "purchase-transaction",
-  element: <PurchaseTransaction />,
-  route: Route
-},
-{
   id: 149,
   path: routes.emailreply,
   name: "email-reply",
@@ -2264,7 +2210,7 @@ export const unAuthRoutes = [
   id: 1,
   path: routes.signin,
   name: "signin",
-  element: <Signin />,
+  element: <SigninTwo />,
   route: Route
 },
 {
@@ -2279,6 +2225,13 @@ export const unAuthRoutes = [
   path: routes.signinthree,
   name: "signinthree",
   element: <SigninThree />,
+  route: Route
+},
+{
+  id: 3.5,
+  path: routes.superAdminLogin,
+  name: "superAdminLogin",
+  element: <SigninTwo />,
   route: Route
 },
 {

@@ -1,0 +1,98 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: hexa_pos_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: hexa_pos_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hexa_pos_network
+
+  # Backend API (Development)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: hexa_pos_backend
+    environment:
+      NODE_ENV: development
+      PORT: 5557
+      API_URL: http://localhost:5557
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/hexa_pos_db
+      JWT_SECRET: dev-jwt-secret-key-min-32-chars-long-for-development
+      JWT_EXPIRES_IN: 7d
+      JWT_REFRESH_SECRET: dev-refresh-secret-key-for-development
+      JWT_REFRESH_EXPIRES_IN: 30d
+      FRONTEND_URL: http://localhost:3002
+    ports:
+      - "5557:5557"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - /app/dist
+    command: sh -c "npx prisma migrate deploy && npm run dev"
+    networks:
+      - hexa_pos_network
+    restart: unless-stopped
+
+  # Frontend (Development)
+  frontend:
+    build:
+      context: ./reactjs/template
+      dockerfile: Dockerfile.dev
+    container_name: hexa_pos_frontend
+    environment:
+      VITE_API_URL: http://localhost:5557/api/v1
+      VITE_BACKEND_URL: http://localhost:5557
+    ports:
+      - "3002:3002"
+    depends_on:
+      - backend
+    volumes:
+      - ./reactjs/template:/app
+      - /app/node_modules
+    networks:
+      - hexa_pos_network
+    restart: unless-stopped
+
+  # pgAdmin - PostgreSQL Database Management (port 8080)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: hexa_pos_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@hexapos.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+    ports:
+      - "8080:80"
+    depends_on:
+      - postgres
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - hexa_pos_network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  pgadmin_data:
+
+networks:
+  hexa_pos_network:
+    driver: bridge
+

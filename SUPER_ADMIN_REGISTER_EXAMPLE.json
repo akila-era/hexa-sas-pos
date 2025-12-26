@@ -1,0 +1,37 @@
+{
+  "step1_create_company": {
+    "method": "POST",
+    "url": "http://localhost:5557/api/v1/companies",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "name": "Super Admin Company"
+    },
+    "note": "Copy the 'id' from response - this is your companyId"
+  },
+  "step2_register_super_admin": {
+    "method": "POST",
+    "url": "http://localhost:5557/api/v1/auth/register",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "email": "superadmin@example.com",
+      "password": "SuperAdmin123",
+      "firstName": "Super",
+      "lastName": "Admin",
+      "companyId": "PASTE-COMPANY-ID-FROM-STEP-1-HERE",
+      "note": "roleId and branchId are optional - will be auto-created"
+    }
+  },
+  "step3_update_role_to_super_admin": {
+    "note": "After registration, update role in database:",
+    "sql": "UPDATE \"User\" SET \"roleId\" = (SELECT id FROM \"Role\" WHERE \"tenantId\" = 'your-company-id' AND name = 'Super Admin') WHERE email = 'superadmin@example.com';"
+  }
+}
+
+
+
+
+

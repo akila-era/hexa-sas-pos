@@ -7,7 +7,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install --legacy-peer-deps
+RUN npm ci --legacy-peer-deps
 
 # Copy source code
 COPY . .
@@ -15,6 +15,5 @@ COPY . .
 # Expose port
 EXPOSE 3002
 
-# Start development server
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
-
+# Start development server with host binding
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3002"]

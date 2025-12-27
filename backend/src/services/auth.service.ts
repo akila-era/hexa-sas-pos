@@ -1,6 +1,6 @@
 import { prisma } from '../database/client';
-import { hashPassword, comparePassword, generateAccessToken, generateRefreshToken } from '../utils/auth.utils';
-import { userRegisterSchema, userLoginSchema, superAdminRegisterSchema } from '../utils/validation';
+import { hashPassword, comparePassword, generateAccessToken, generateRefreshToken, generateRandomToken, generateOTP } from '../utils/auth.utils';
+import { userRegisterSchema, userLoginSchema, superAdminRegisterSchema, forgotPasswordSchema, resetPasswordSchema, verifyEmailSchema, verifyOtpSchema } from '../utils/validation';
 import { AppError } from '../types';
 import { AppError as AppErrorClass } from '../middlewares/error.middleware';
 import { logger } from '../utils/logger';
@@ -129,6 +129,11 @@ export class AuthService {
     // Hash password
     const passwordHash = await hashPassword(validated.password);
 
+    // Generate email verification token
+    const emailVerificationToken = generateRandomToken();
+    const emailVerificationExpires = new Date();
+    emailVerificationExpires.setHours(emailVerificationExpires.getHours() + 24); // Token expires in 24 hours
+
     // Create user
     // @ts-ignore - Prisma client needs regeneration
     const user = await (prisma as any).user.create({
@@ -138,6 +143,9 @@ export class AuthService {
         tenantId: validated.companyId,
         branchId: branchId, // Use resolved branchId
         roleId: roleId, // Use resolved roleId
+        emailVerificationToken,
+        emailVerificationExpires,
+        emailVerified: false,
       },
       include: {
         tenant: true,
@@ -492,6 +500,11 @@ export class AuthService {
       // Hash password
       const passwordHash = await hashPassword(validated.password);
 
+      // Generate email verification token
+      const emailVerificationToken = generateRandomToken();
+      const emailVerificationExpires = new Date();
+      emailVerificationExpires.setHours(emailVerificationExpires.getHours() + 24); // Token expires in 24 hours
+
       // Create super admin user
       // Note: firstName, lastName, phone are not in User model schema yet
       // @ts-ignore - Prisma client needs regeneration
@@ -502,6 +515,9 @@ export class AuthService {
           tenantId: systemCompany.id,
           branchId: systemBranch.id,
           roleId: superAdminRole.id,
+          emailVerificationToken,
+          emailVerificationExpires,
+          emailVerified: false, // Super admins may need email verification too
         },
         include: {
           tenant: true,
@@ -558,6 +574,201 @@ export class AuthService {
         'REGISTRATION_FAILED'
       );
     }
+  }
+
+  /**
+   * Forgot password - Generate password reset token
+   */
+  async forgotPassword(data: z.infer<typeof forgotPasswordSchema>) {
+    const validated = forgotPasswordSchema.parse(data);
+
+    // Find user by email
+    // @ts-ignore - Prisma client needs regeneration
+    const user = await (prisma as any).user.findUnique({
+      where: { email: validated.email },
+    });
+
+    // Don't reveal if user exists or not (security best practice)
+    if (!user) {
+      // Return success even if user doesn't exist to prevent email enumeration
+      return { message: 'If the email exists, a password reset link has been sent.' };
+    }
+
+    // Generate reset token
+    const resetToken = generateRandomToken();
+    const resetExpires = new Date();
+    resetExpires.setHours(resetExpires.getHours() + 1); // Token expires in 1 hour
+
+    // Save reset token to user
+    // @ts-ignore - Prisma client needs regeneration
+    await (prisma as any).user.update({
+      where: { id: user.id },
+      data: {
+        passwordResetToken: resetToken,
+        passwordResetExpires: resetExpires,
+      },
+    });
+
+    // TODO: Send email with reset link
+    // For now, we'll just log it (in production, send email)
+    logger.info('Password reset token generated', {
+      email: validated.email,
+      token: resetToken, // Remove this in production
+    });
+
+    return { message: 'If the email exists, a password reset link has been sent.' };
+  }
+
+  /**
+   * Reset password using token
+   */
+  async resetPassword(data: z.infer<typeof resetPasswordSchema>) {
+    const validated = resetPasswordSchema.parse(data);
+
+    // Find user by reset token
+    // @ts-ignore - Prisma client needs regeneration
+    const user = await (prisma as any).user.findFirst({
+      where: {
+        passwordResetToken: validated.token,
+        passwordResetExpires: {
+          gt: new Date(), // Token must not be expired
+        },
+      },
+    });
+
+    if (!user) {
+      throw new AppErrorClass('Invalid or expired reset token', 400, 'INVALID_RESET_TOKEN');
+    }
+
+    // Hash new password
+    const passwordHash = await hashPassword(validated.password);
+
+    // Update password and clear reset token
+    // @ts-ignore - Prisma client needs regeneration
+    await (prisma as any).user.update({
+      where: { id: user.id },
+      data: {
+        password: passwordHash,
+        passwordResetToken: null,
+        passwordResetExpires: null,
+      },
+    });
+
+    return { message: 'Password has been reset successfully' };
+  }
+
+  /**
+   * Verify email using token
+   */
+  async verifyEmail(data: z.infer<typeof verifyEmailSchema>) {
+    const validated = verifyEmailSchema.parse(data);
+
+    // Find user by verification token
+    // @ts-ignore - Prisma client needs regeneration
+    const user = await (prisma as any).user.findFirst({
+      where: {
+        emailVerificationToken: validated.token,
+        emailVerificationExpires: {
+          gt: new Date(), // Token must not be expired
+        },
+      },
+    });
+
+    if (!user) {
+      throw new AppErrorClass('Invalid or expired verification token', 400, 'INVALID_VERIFICATION_TOKEN');
+    }
+
+    // Mark email as verified and clear token
+    // @ts-ignore - Prisma client needs regeneration
+    await (prisma as any).user.update({
+      where: { id: user.id },
+      data: {
+        emailVerified: true,
+        emailVerificationToken: null,
+        emailVerificationExpires: null,
+      },
+    });
+
+    return { message: 'Email verified successfully' };
+  }
+
+  /**
+   * Verify OTP
+   */
+  async verifyOtp(data: z.infer<typeof verifyOtpSchema>) {
+    const validated = verifyOtpSchema.parse(data);
+
+    // Find user by email
+    // @ts-ignore - Prisma client needs regeneration
+    const user = await (prisma as any).user.findUnique({
+      where: { email: validated.email },
+    });
+
+    if (!user) {
+      throw new AppErrorClass('User not found', 404, 'USER_NOT_FOUND');
+    }
+
+    // Check if OTP exists and is valid
+    if (!user.otp || user.otp !== validated.otp) {
+      throw new AppErrorClass('Invalid OTP', 400, 'INVALID_OTP');
+    }
+
+    // Check if OTP is expired
+    if (!user.otpExpires || user.otpExpires < new Date()) {
+      throw new AppErrorClass('OTP has expired', 400, 'OTP_EXPIRED');
+    }
+
+    // Clear OTP after successful verification
+    // @ts-ignore - Prisma client needs regeneration
+    await (prisma as any).user.update({
+      where: { id: user.id },
+      data: {
+        otp: null,
+        otpExpires: null,
+      },
+    });
+
+    return { message: 'OTP verified successfully' };
+  }
+
+  /**
+   * Send OTP to user email (helper method)
+   * This can be called from forgot-password or other flows
+   */
+  async sendOtp(email: string): Promise<string> {
+    // Find user by email
+    // @ts-ignore - Prisma client needs regeneration
+    const user = await (prisma as any).user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      throw new AppErrorClass('User not found', 404, 'USER_NOT_FOUND');
+    }
+
+    // Generate OTP
+    const otp = generateOTP();
+    const otpExpires = new Date();
+    otpExpires.setMinutes(otpExpires.getMinutes() + 10); // OTP expires in 10 minutes
+
+    // Save OTP to user
+    // @ts-ignore - Prisma client needs regeneration
+    await (prisma as any).user.update({
+      where: { id: user.id },
+      data: {
+        otp,
+        otpExpires,
+      },
+    });
+
+    // TODO: Send OTP via email/SMS
+    // For now, we'll just log it (in production, send via email/SMS)
+    logger.info('OTP generated', {
+      email,
+      otp, // Remove this in production
+    });
+
+    return otp;
   }
 }
 

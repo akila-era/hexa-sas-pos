@@ -25,7 +25,13 @@ export const productService = {
   delete: async (id) => {
     return await apiClient.delete(`/products/${id}`);
   },
+
+  // Find product by barcode (for barcode scanning)
+  findByBarcode: async (barcode) => {
+    return await apiClient.get(`/products/barcode/${encodeURIComponent(barcode)}`);
+  },
 };
+
 
 
 

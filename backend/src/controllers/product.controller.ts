@@ -2,6 +2,7 @@ import { Response, NextFunction } from 'express';
 import { AuthRequest, ApiResponse } from '../types';
 import productService from '../services/product.service';
 import { AppError as AppErrorClass } from '../middlewares/error.middleware';
+import { transformProduct } from '../utils/transformers';
 
 /**
  * Product Controller
@@ -49,9 +50,12 @@ export class ProductController {
 
       const result = await productService.findAll(req.companyId!, req.query as any);
 
+      // Transform data to match frontend format
+      const transformedProducts = result.data.map(transformProduct);
+
       const response: ApiResponse = {
         success: true,
-        data: result.data,
+        data: transformedProducts,
         pagination: result.pagination,
       };
 
@@ -141,6 +145,36 @@ export class ProductController {
       const response: ApiResponse = {
         success: true,
         data: result,
+      };
+
+      res.json(response);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Find product by barcode or SKU
+   * GET /api/products/barcode/:barcode
+   * Used for barcode scanning
+   */
+  async findByBarcode(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      if (!req.companyId) {
+        throw new AppErrorClass('Tenant context is required', 403, 'TENANT_CONTEXT_REQUIRED');
+      }
+
+      const barcode = req.params.barcode || req.query.barcode as string;
+      if (!barcode) {
+        throw new AppErrorClass('Barcode is required', 400, 'BARCODE_REQUIRED');
+      }
+
+      const product = await productService.findByBarcode(req.companyId!, barcode);
+      const transformedProduct = transformProduct(product);
+
+      const response: ApiResponse = {
+        success: true,
+        data: transformedProduct,
       };
 
       res.json(response);

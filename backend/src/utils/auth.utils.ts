@@ -1,5 +1,6 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { env } from '../config/env';
 import { JwtPayload } from '../types';
 
@@ -59,5 +60,19 @@ export const verifyRefreshToken = (token: string): JwtPayload => {
   } catch (error) {
     throw new Error('Invalid or expired refresh token');
   }
+};
+
+/**
+ * Generate a random token for email verification or password reset
+ */
+export const generateRandomToken = (): string => {
+  return crypto.randomBytes(32).toString('hex');
+};
+
+/**
+ * Generate a 6-digit OTP
+ */
+export const generateOTP = (): string => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
 };
 

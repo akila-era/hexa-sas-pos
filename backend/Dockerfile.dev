@@ -3,31 +3,34 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Install nodemon globally for hot reload
-RUN npm install -g nodemon ts-node
+# Install OpenSSL and other dependencies for Prisma
+RUN apk add --no-cache openssl libc6-compat
+
+# Install nodemon and ts-node globally for hot reload
+RUN npm install -g nodemon ts-node prisma@^5.7.0
 
 # Copy package files
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Install dependencies
+# Install all dependencies (including devDependencies)
 RUN npm ci
 
 # Copy source code
 COPY . .
 
+# Copy entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 # Generate Prisma Client
-RUN npm run db:generate
+RUN npx prisma generate
 
 # Expose port
 EXPOSE 5557
 
+# Use entrypoint script
+ENTRYPOINT ["docker-entrypoint.sh"]
+
 # Start development server with hot reload
 CMD ["npm", "run", "dev"]
-
-
-
-
-
-
-

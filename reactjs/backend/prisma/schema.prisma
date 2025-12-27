@@ -1,0 +1,144 @@
+// Prisma Schema for HEXA POS - Products & Inventory Module
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// PRODUCTS & INVENTORY TABLES
+// ============================================
+
+model Category {
+  id          Int         @id @default(autoincrement())
+  name        String      @db.VarChar(100)
+  slug        String      @unique @db.VarChar(100)
+  description String?     @db.Text
+  imageUrl    String?     @map("image_url") @db.Text
+  parentId    Int?        @map("parent_id")
+  isActive    Boolean     @default(true) @map("is_active")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  // Self-referential relation for subcategories
+  parent      Category?   @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children    Category[]  @relation("CategoryHierarchy")
+
+  // Products in this category
+  products    Product[]
+
+  @@index([parentId])
+  @@index([slug])
+  @@map("categories")
+}
+
+model Brand {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique @db.VarChar(100)
+  slug        String    @unique @db.VarChar(100)
+  description String?   @db.Text
+  logoUrl     String?   @map("logo_url") @db.Text
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // Products with this brand
+  products    Product[]
+
+  @@map("brands")
+}
+
+model Unit {
+  id        Int       @id @default(autoincrement())
+  name      String    @db.VarChar(50)
+  shortName String    @map("short_name") @db.VarChar(10)
+  isActive  Boolean   @default(true) @map("is_active")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  // Products using this unit
+  products  Product[]
+
+  @@map("units")
+}
+
+model Product {
+  id              Int       @id @default(autoincrement())
+  name            String    @db.VarChar(255)
+  sku             String    @unique @db.VarChar(100)
+  barcode         String?   @db.VarChar(100)
+  description     String?   @db.Text
+  categoryId      Int?      @map("category_id")
+  brandId         Int?      @map("brand_id")
+  unitId          Int?      @map("unit_id")
+  basePrice       Decimal   @map("base_price") @db.Decimal(10, 2)
+  sellingPrice    Decimal   @map("selling_price") @db.Decimal(10, 2)
+  costPrice       Decimal?  @map("cost_price") @db.Decimal(10, 2)
+  taxRate         Decimal   @default(0) @map("tax_rate") @db.Decimal(5, 2)
+  minStockLevel   Int       @default(0) @map("min_stock_level")
+  maxStockLevel   Int?      @map("max_stock_level")
+  currentStock    Int       @default(0) @map("current_stock")
+  weight          Decimal?  @db.Decimal(8, 2)
+  dimensions      String?   @db.VarChar(50)
+  warrantyPeriod  Int?      @map("warranty_period") // in months
+  expiryDate      DateTime? @map("expiry_date") @db.Date
+  isActive        Boolean   @default(true) @map("is_active")
+  isFeatured      Boolean   @default(false) @map("is_featured")
+  createdBy       Int?      @map("created_by")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+
+  // Relations
+  category        Category?         @relation(fields: [categoryId], references: [id])
+  brand           Brand?            @relation(fields: [brandId], references: [id])
+  unit            Unit?             @relation(fields: [unitId], references: [id])
+  images          ProductImage[]
+  variants        ProductVariant[]
+
+  @@index([sku])
+  @@index([categoryId])
+  @@index([brandId])
+  @@index([isActive])
+  @@index([expiryDate])
+  @@map("products")
+}
+
+model ProductImage {
+  id        Int      @id @default(autoincrement())
+  productId Int      @map("product_id")
+  imageUrl  String   @map("image_url") @db.Text
+  isPrimary Boolean  @default(false) @map("is_primary")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("product_images")
+}
+
+model ProductVariant {
+  id              Int      @id @default(autoincrement())
+  productId       Int      @map("product_id")
+  variantName     String   @map("variant_name") @db.VarChar(100) // e.g., "Size: Large", "Color: Red"
+  variantValue    String   @map("variant_value") @db.VarChar(100)
+  sku             String?  @db.VarChar(100)
+  priceAdjustment Decimal  @default(0) @map("price_adjustment") @db.Decimal(10, 2)
+  stockQuantity   Int      @default(0) @map("stock_quantity")
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("product_variants")
+}
+

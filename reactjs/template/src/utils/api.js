@@ -34,6 +34,23 @@ apiClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // Handle network errors (connection refused, timeout, etc.)
+    if (!error.response) {
+      // Network error - server is not reachable
+      const networkError = {
+        success: false,
+        error: {
+          code: 'NETWORK_ERROR',
+          message: error.code === 'ECONNREFUSED' 
+            ? 'Unable to connect to server. Please make sure the backend server is running.'
+            : error.message === 'Network Error'
+            ? 'Network error. Please check your internet connection and ensure the server is running.'
+            : error.message || 'Network error occurred',
+        }
+      };
+      return Promise.reject(networkError);
+    }
+
     // If 401 and not already retrying, try to refresh token
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
@@ -65,8 +82,20 @@ apiClient.interceptors.response.use(
       }
     }
 
-    // Handle other errors
-    return Promise.reject(error.response?.data || error.message);
+    // Handle other errors - return the error response data if available
+    const errorData = error.response?.data;
+    if (errorData) {
+      return Promise.reject(errorData);
+    }
+
+    // Fallback error format
+    return Promise.reject({
+      success: false,
+      error: {
+        code: 'UNKNOWN_ERROR',
+        message: error.message || 'An unexpected error occurred',
+      }
+    });
   }
 );
 

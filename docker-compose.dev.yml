@@ -18,6 +18,7 @@ services:
       retries: 5
     networks:
       - hexa_pos_network
+    restart: unless-stopped
 
   # Backend API (Development)
   backend:
@@ -44,10 +45,10 @@ services:
       - ./backend:/app
       - /app/node_modules
       - /app/dist
-    command: sh -c "npx prisma migrate deploy && npm run dev"
     networks:
       - hexa_pos_network
     restart: unless-stopped
+    # Command handled by entrypoint script
 
   # Frontend (Development)
   frontend:
@@ -64,6 +65,26 @@ services:
       - backend
     volumes:
       - ./reactjs/template:/app
+      - /app/node_modules
+    networks:
+      - hexa_pos_network
+    restart: unless-stopped
+
+  # Super Admin App (Development)
+  super-admin:
+    build:
+      context: ./reactjs/super-admin-app
+      dockerfile: Dockerfile.dev
+    container_name: hexa_pos_super_admin
+    environment:
+      VITE_API_URL: http://localhost:5557/api/v1
+      VITE_BACKEND_URL: http://localhost:5557
+    ports:
+      - "3006:3006"
+    depends_on:
+      - backend
+    volumes:
+      - ./reactjs/super-admin-app:/app
       - /app/node_modules
     networks:
       - hexa_pos_network
@@ -95,4 +116,3 @@ volumes:
 networks:
   hexa_pos_network:
     driver: bridge
-

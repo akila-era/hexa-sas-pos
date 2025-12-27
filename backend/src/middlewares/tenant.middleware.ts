@@ -69,6 +69,12 @@ export const tenantIsolation = (
 export const tenantSafe = tenantIsolation;
 
 /**
+ * Alias for tenantIsolation for backward compatibility
+ * @deprecated Use tenantIsolation instead
+ */
+export const tenantMiddleware = tenantIsolation;
+
+/**
  * Middleware to validate branch access
  * Ensures user can only access data from their assigned branch (if they have one)
  */

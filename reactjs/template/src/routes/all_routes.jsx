@@ -237,6 +237,8 @@ export const all_routes = {
   product: "/products",
   productdetails: "/product-details",
   orders: "/orders",
+  omsOrders: "/oms/orders",
+  omsOrderDetails: "/oms/orders/:id",
   cart: "/cart",
   checkout: "/checkout",
   wishlist: "/wishlist",

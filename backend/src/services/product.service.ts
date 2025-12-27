@@ -215,6 +215,38 @@ export class ProductService {
 
     return { message: 'Product deleted successfully' };
   }
+
+  /**
+   * Find product by barcode or SKU
+   * Used for barcode scanning functionality
+   */
+  async findByBarcode(companyId: string, barcode: string) {
+    if (!barcode || barcode.trim() === '') {
+      throw new AppErrorClass('Barcode is required', 400, 'BARCODE_REQUIRED');
+    }
+
+    const product = await (prisma as any).product.findFirst({
+      where: {
+        tenantId: companyId,
+        OR: [
+          { barcode: { equals: barcode.trim(), mode: 'insensitive' } },
+          { sku: { equals: barcode.trim(), mode: 'insensitive' } },
+        ],
+        isActive: true,
+      },
+      include: {
+        category: true,
+        brand: true,
+        unit: true,
+      },
+    });
+
+    if (!product) {
+      throw new AppErrorClass('Product not found with this barcode', 404, 'PRODUCT_NOT_FOUND');
+    }
+
+    return product;
+  }
 }
 
 export default new ProductService();

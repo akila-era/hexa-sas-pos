@@ -143,6 +143,27 @@ const Companies = () => {
 
       const response = await companiesService.create(companyData);
       if (response?.success) {
+        // Log company account creation
+        console.log('Company account created successfully:', {
+          timestamp: new Date().toISOString(),
+          companyData: {
+            name: companyData.name,
+            email: companyData.email,
+            accountUrl: companyData.accountUrl,
+            phone: companyData.phone,
+            website: companyData.website,
+            plan: companyData.plan,
+            currency: companyData.currency,
+            language: companyData.language,
+            status: companyData.isActive ? 'Active' : 'Inactive',
+            hasPassword: !!companyData.password
+          },
+          response: {
+            id: response?.data?.id,
+            success: response?.success
+          }
+        });
+        
         // Close modal using Bootstrap
         const modalElement = document.getElementById('add_company');
         if (modalElement) {
@@ -255,8 +276,68 @@ const Companies = () => {
   };
 
   // Handle view company
-  const handleViewCompany = (company) => {
+  const handleViewCompany = async (company) => {
     setSelectedCompany(company);
+    
+    // Fetch full company details if we have the ID
+    if (company.id) {
+      try {
+        const response = await companiesService.getById(company.id);
+        if (response?.success && response?.data) {
+          const companyData = response.data;
+          setFormData({
+            name: companyData.name || company.CompanyName,
+            email: companyData.email || company.Email,
+            accountUrl: companyData.accountUrl || company.AccountURL,
+            phone: companyData.phone || '',
+            website: companyData.website || '',
+            address: companyData.address || '',
+            plan: companyData.plan || company.Plan?.split(' ')[0] || 'FREE',
+            currency: companyData.currency || 'USD',
+            language: companyData.language || 'English',
+            status: companyData.isActive ? 'Active' : 'Inactive',
+            planType: companyData.planType || '', 
+            password: '', 
+            confirmPassword: ''
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching company details:', error);
+        // Fallback to basic data from table row
+        setFormData({
+          name: company.CompanyName,
+          email: company.Email,
+          accountUrl: company.AccountURL,
+          plan: company.Plan?.split(' ')[0] || 'FREE',
+          status: company.Status,
+          phone: '', 
+          website: '', 
+          password: '', 
+          confirmPassword: '', 
+          address: '', 
+          planType: '', 
+          currency: 'USD', 
+          language: 'English'
+        });
+      }
+    } else {
+      // Fallback to basic data from table row
+      setFormData({
+        name: company.CompanyName,
+        email: company.Email,
+        accountUrl: company.AccountURL,
+        plan: company.Plan?.split(' ')[0] || 'FREE',
+        status: company.Status,
+        phone: '', 
+        website: '', 
+        password: '', 
+        confirmPassword: '', 
+        address: '', 
+        planType: '', 
+        currency: 'USD', 
+        language: 'English'
+      });
+    }
   };
 
   // Handle edit click
@@ -308,9 +389,12 @@ const Companies = () => {
     <div className="d-flex align-items-center file-name-icon">
           <Link to="#" className="avatar avatar-md border rounded-circle">
             <img
-          src={`src/assets/img/company/${rowData.Image}`}
+          src={`/src/assets/img/company/${rowData.Image}`}
           className="img-fluid"
-          alt="img" />
+          alt="img" 
+          onError={(e) => {
+            e.target.src = '/src/assets/img/company/company-01.svg';
+          }} />
         
           </Link>
           <div className="ms-2">
@@ -1741,119 +1825,113 @@ const Companies = () => {
                 <i className="ti ti-x" />
               </button>
             </div>
-            <div className="moday-body">
-              <div className="p-3">
-                <div className="d-flex justify-content-between align-items-center rounded bg-light p-3">
-                  <div className="file-name-icon d-flex align-items-center">
-                    <Link
-                      to="#"
-                      className="avatar avatar-md border rounded-circle flex-shrink-0 me-2">
-                      
-                      <img
-                        src="assets/img/company/company-01.svg"
-                        className="img-fluid"
-                        alt="img" />
-                      
-                    </Link>
+            <div className="modal-body">
+              {selectedCompany ? (
+                <>
+                  <div className="p-3">
+                    <div className="d-flex justify-content-between align-items-center rounded bg-light p-3">
+                      <div className="file-name-icon d-flex align-items-center">
+                        <Link
+                          to="#"
+                          className="avatar avatar-md border rounded-circle flex-shrink-0 me-2">
+                          
+                          <img
+                            src={`src/assets/img/company/${selectedCompany.Image || 'company-01.svg'}`}
+                            className="img-fluid"
+                            alt="img" />
+                          
+                        </Link>
+                        <div>
+                          <p className="text-gray-9 fw-medium mb-0">
+                            {selectedCompany.CompanyName || 'N/A'}
+                          </p>
+                          <p>{selectedCompany.Email || 'N/A'}</p>
+                        </div>
+                      </div>
+                      <span className={`badge ${selectedCompany.Status === 'Active' ? 'badge-success' : 'badge-danger'}`}>
+                        <i className="ti ti-point-filled" />
+                        {selectedCompany.Status || 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="p-3">
+                    <p className="text-gray-9 fw-medium">Basic Info</p>
+                    <div className="pb-1 border-bottom mb-4">
+                      <div className="row align-items-center">
+                        <div className="col-md-4">
+                          <div className="mb-3">
+                            <p className="fs-12 mb-0">Account URL</p>
+                            <p className="text-gray-9">{selectedCompany.AccountURL || 'N/A'}</p>
+                          </div>
+                        </div>
+                        <div className="col-md-4">
+                          <div className="mb-3">
+                            <p className="fs-12 mb-0">Phone Number</p>
+                            <p className="text-gray-9">{formData.phone || 'N/A'}</p>
+                          </div>
+                        </div>
+                        <div className="col-md-4">
+                          <div className="mb-3">
+                            <p className="fs-12 mb-0">Website</p>
+                            <p className="text-gray-9">{formData.website || 'N/A'}</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="row align-items-center">
+                        <div className="col-md-4">
+                          <div className="mb-3">
+                            <p className="fs-12 mb-0">Currency</p>
+                            <p className="text-gray-9">
+                              {formData.currency === 'USD' ? 'United States Dollar (USD)' : formData.currency === 'Euro' ? 'Euro (EUR)' : formData.currency || 'N/A'}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="col-md-4">
+                          <div className="mb-3">
+                            <p className="fs-12 mb-0">Language</p>
+                            <p className="text-gray-9">{formData.language || 'N/A'}</p>
+                          </div>
+                        </div>
+                        <div className="col-md-4">
+                          <div className="mb-3">
+                            <p className="fs-12 mb-0">Address</p>
+                            <p className="text-gray-9">
+                              {formData.address || 'N/A'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-gray-9 fw-medium">Plan Details</p>
                     <div>
-                      <p className="text-gray-9 fw-medium mb-0">
-                        BrightWave Innovations
-                      </p>
-                      <p>michael@example.com</p>
+                      <div className="row align-items-center">
+                        <div className="col-md-4">
+                          <div className="mb-3">
+                            <p className="fs-12 mb-0">Plan Name</p>
+                            <p className="text-gray-9">{selectedCompany.Plan || formData.plan || 'N/A'}</p>
+                          </div>
+                        </div>
+                        <div className="col-md-4">
+                          <div className="mb-3">
+                            <p className="fs-12 mb-0">Plan Type</p>
+                            <p className="text-gray-9">{formData.planType || 'N/A'}</p>
+                          </div>
+                        </div>
+                        <div className="col-md-4">
+                          <div className="mb-3">
+                            <p className="fs-12 mb-0">Created Date</p>
+                            <p className="text-gray-9">{selectedCompany.CreatedDate || 'N/A'}</p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <span className="badge badge-success">
-                    <i className="ti ti-point-filled" />
-                    Active
-                  </span>
+                </>
+              ) : (
+                <div className="p-3 text-center">
+                  <p>No company selected</p>
                 </div>
-              </div>
-              <div className="p-3">
-                <p className="text-gray-9 fw-medium">Basic Info</p>
-                <div className="pb-1 border-bottom mb-4">
-                  <div className="row align-items-center">
-                    <div className="col-md-4">
-                      <div className="mb-3">
-                        <p className="fs-12 mb-0">Account URL</p>
-                        <p className="text-gray-9">bwi.example.com</p>
-                      </div>
-                    </div>
-                    <div className="col-md-4">
-                      <div className="mb-3">
-                        <p className="fs-12 mb-0">Phone Number</p>
-                        <p className="text-gray-9">(163) 2459 315</p>
-                      </div>
-                    </div>
-                    <div className="col-md-4">
-                      <div className="mb-3">
-                        <p className="fs-12 mb-0">Website</p>
-                        <p className="text-gray-9">www.exmple.com</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="row align-items-center">
-                    <div className="col-md-4">
-                      <div className="mb-3">
-                        <p className="fs-12 mb-0">Currency</p>
-                        <p className="text-gray-9">
-                          United Stated Dollar (USD)
-                        </p>
-                      </div>
-                    </div>
-                    <div className="col-md-4">
-                      <div className="mb-3">
-                        <p className="fs-12 mb-0">Language</p>
-                        <p className="text-gray-9">English</p>
-                      </div>
-                    </div>
-                    <div className="col-md-4">
-                      <div className="mb-3">
-                        <p className="fs-12 mb-0">Addresss</p>
-                        <p className="text-gray-9">
-                          3705 Lynn Avenue, Phelps, WI 54554
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <p className="text-gray-9 fw-medium">Plan Details</p>
-                <div>
-                  <div className="row align-items-center">
-                    <div className="col-md-4">
-                      <div className="mb-3">
-                        <p className="fs-12 mb-0">Plan Name</p>
-                        <p className="text-gray-9">Advanced</p>
-                      </div>
-                    </div>
-                    <div className="col-md-4">
-                      <div className="mb-3">
-                        <p className="fs-12 mb-0">Plan Type</p>
-                        <p className="text-gray-9">Monthly</p>
-                      </div>
-                    </div>
-                    <div className="col-md-4">
-                      <div className="mb-3">
-                        <p className="fs-12 mb-0">Price</p>
-                        <p className="text-gray-9">$200</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="row align-items-center">
-                    <div className="col-md-4">
-                      <div className="mb-3">
-                        <p className="fs-12 mb-0">Register Date</p>
-                        <p className="text-gray-9">12 Sep 2024</p>
-                      </div>
-                    </div>
-                    <div className="col-md-4">
-                      <div className="mb-3">
-                        <p className="fs-12 mb-0">Expiring On</p>
-                        <p className="text-gray-9">11 Oct 2024</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

@@ -23,6 +23,13 @@ router.get(
   productController.findAll.bind(productController)
 );
 
+// Barcode search route (before :id route to avoid conflict)
+router.get(
+  '/barcode/:barcode',
+  requirePermission('products:read'),
+  productController.findByBarcode.bind(productController)
+);
+
 router.get(
   '/:id',
   requirePermission('products:read'),

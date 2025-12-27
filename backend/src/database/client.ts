@@ -36,7 +36,7 @@ function getPrismaClient(): PrismaClient {
   }
 }
 
-export const prisma = new Proxy({} as PrismaClient, {
+const prisma = new Proxy({} as PrismaClient, {
   get(_target, prop) {
     const client = getPrismaClient();
     const value = (client as any)[prop];
@@ -56,4 +56,5 @@ process.on('beforeExit', async () => {
 });
 
 export default prisma;
+export { prisma };
 

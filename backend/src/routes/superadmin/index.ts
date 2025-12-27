@@ -9,6 +9,7 @@ import domainRoutes from './domain.routes';
 import transactionRoutes from './transaction.routes';
 import companyRoutes from './company.routes';
 import superAdminUsersRoutes from './superadmin-users.routes';
+import featureToggleRoutes from './feature-toggle.routes';
 
 const router = Router();
 
@@ -24,6 +25,7 @@ router.use('/domains', domainRoutes);
 router.use('/transactions', transactionRoutes);
 router.use('/companies', companyRoutes);
 router.use('/users', superAdminUsersRoutes);
+router.use('/features', featureToggleRoutes);
 
 export default router;
 

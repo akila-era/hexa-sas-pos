@@ -17,6 +17,7 @@ export interface AuthRequest extends Request {
     }) | null;
   };
   companyId?: string; // Maps to tenantId for backward compatibility
+  tenantId?: string;  // Alias for companyId
   branchId?: string;
 }
 
@@ -43,6 +44,11 @@ export interface ApiResponse<T = any> {
     limit: number;
     total: number;
     totalPages: number;
+  };
+  meta?: {
+    page: number;
+    limit: number;
+    total: number;
   };
 }
 

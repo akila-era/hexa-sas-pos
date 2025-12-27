@@ -166,6 +166,82 @@ export class AuthController {
       next(error);
     }
   }
+
+  /**
+   * Forgot password
+   * POST /api/v1/auth/forgot-password
+   */
+  async forgotPassword(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const result = await authService.forgotPassword(req.body);
+
+      const response: ApiResponse = {
+        success: true,
+        data: result,
+      };
+
+      res.json(response);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Reset password
+   * POST /api/v1/auth/reset-password
+   */
+  async resetPassword(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const result = await authService.resetPassword(req.body);
+
+      const response: ApiResponse = {
+        success: true,
+        data: result,
+      };
+
+      res.json(response);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Verify email
+   * POST /api/v1/auth/verify-email
+   */
+  async verifyEmail(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const result = await authService.verifyEmail(req.body);
+
+      const response: ApiResponse = {
+        success: true,
+        data: result,
+      };
+
+      res.json(response);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Verify OTP
+   * POST /api/v1/auth/verify-otp
+   */
+  async verifyOtp(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const result = await authService.verifyOtp(req.body);
+
+      const response: ApiResponse = {
+        success: true,
+        data: result,
+      };
+
+      res.json(response);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default new AuthController();
